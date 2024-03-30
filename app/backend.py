@@ -121,8 +121,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/token")
-def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], 
-                           db: Session = Depends(get_db)) -> schemas.Token:
+async def login_for_access_token(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)
+) -> schemas.Token:
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(
@@ -136,7 +137,7 @@ def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depen
     return schemas.Token(access_token=access_token, token_type="bearer")
 
 
-def load_model(model_type: str = 'logreg'):
+async def load_model(model_type: str = 'logreg'):
     models_path = os.path.join(os.path.dirname(os.path.abspath(__file__))[:-4], 'models')
     with open(models_path + f'/{model_type}.joblib', 'rb') as f:
         model_instance = joblib.load(f)
@@ -145,7 +146,7 @@ def load_model(model_type: str = 'logreg'):
 
 
 @app.post("/predict")
-def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
+async def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
             data: dict, requested_model_type: str = 'logreg', db: Session = Depends(get_db)):
     input_text = data
     #print(input_text)
@@ -153,7 +154,7 @@ def predict(current_user: Annotated[schemas.User, Depends(get_current_active_use
     global model, model_type
     if requested_model_type != model_type:
         model_type = requested_model_type
-        model = load_model(model_type)
+        model = await load_model(model_type)
 
     model_price = config['models_pricing'][model_type]
     user_credits = db_flows.get_user_credits(db=db, username=current_user.username)
