@@ -16,6 +16,9 @@ import db_models
 import schemas
 import db_flows
 from db_models import SessionLocal, engine
+import asyncio
+
+data_queue = asyncio.Queue()
 
 SECRET_KEY = secrets.token_bytes(32)
 
@@ -37,13 +40,19 @@ app = FastAPI()
 def index():
     return {"text": "Классификация товаров"}
 
+async def process_data_queue():
+    while True:
+        input_text = await data_queue.get()
+        await predict(input_text)
+        data_queue.task_done()
+
 
 @app.on_event("startup")
 def startup_event():
     global model, model_type
     model_type = 'logreg'
     model = load_model(model_type)
-
+    asyncio.create_task(process_data_queue())
 
 def verify_password(clean, hashed):
     return pwd_context.verify(clean, hashed)
@@ -149,7 +158,7 @@ async def load_model(model_type: str = 'logreg'):
 async def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
             data: dict, requested_model_type: str = 'logreg', db: Session = Depends(get_db)):
     input_text = data
-    #print(input_text)
+    await data_queue.put(input_text)
 
     global model, model_type
     if requested_model_type != model_type:
