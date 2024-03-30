@@ -1,0 +1,17 @@
+numpy
+pandas
+datetime, timedelta, timezone
+typing
+joblib
+secrets
+fastapi
+jose
+passlib
+fastapi.security
+sqlalchemy
+sqlalchemy.orm
+typing_extensions
+pydantic
+streamlit
+requests
+json
