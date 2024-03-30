@@ -108,7 +108,7 @@ def get_current_active_user(current_user: Annotated[schemas.User, Depends(get_cu
 
 
 @app.post("/users/", response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = db_flows.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -121,7 +121,7 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/token")
-async def login_for_access_token(
+def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)
 ) -> schemas.Token:
     user = authenticate_user(form_data.username, form_data.password, db)
@@ -146,7 +146,7 @@ def load_model(model_type: str = 'logreg'):
 
 
 @app.post("/predict")
-async def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
+def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
             data: dict, requested_model_type: str = 'logreg', db: Session = Depends(get_db)):
     input_text = data
     #print(input_text)
