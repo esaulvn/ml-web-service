@@ -84,9 +84,7 @@ def send_data_to_queue(data):
     headers = {'Authorization': f'Bearer {st.session_state.access_token}'}
     requests.post(url="http://127.0.0.1:8000/put_data_in_queue", data=json_data, params=params, headers=headers)
 
-# Отправляем данные в очередь на сервер
 data = {'data': {input_text:'text'}}
-
 
 if predict_button:
     if not input_text:
