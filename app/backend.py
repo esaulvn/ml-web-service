@@ -16,9 +16,6 @@ import db_models
 import schemas
 import db_flows
 from db_models import SessionLocal, engine
-import asyncio
-
-data_queue = asyncio.Queue()
 
 SECRET_KEY = secrets.token_bytes(32)
 
@@ -40,19 +37,12 @@ app = FastAPI()
 def index():
     return {"text": "Классификация товаров"}
 
-async def process_data_queue():
-    while True:
-        input_text = await data_queue.get()
-        await predict(input_text)
-        data_queue.task_done()
-
 
 @app.on_event("startup")
 def startup_event():
     global model, model_type
     model_type = 'logreg'
     model = load_model(model_type)
-    asyncio.create_task(process_data_queue())
 
 def verify_password(clean, hashed):
     return pwd_context.verify(clean, hashed)
@@ -146,24 +136,22 @@ async def login_for_access_token(
     return schemas.Token(access_token=access_token, token_type="bearer")
 
 
-async def load_model(model_type: str = 'logreg'):
+def load_model(model_type: str = 'logreg'):
     models_path = os.path.join(os.path.dirname(os.path.abspath(__file__))[:-4], 'models')
     with open(models_path + f'/{model_type}.joblib', 'rb') as f:
         model_instance = joblib.load(f)
-
     return model_instance
 
 
 @app.post("/predict")
-async def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
+def predict(current_user: Annotated[schemas.User, Depends(get_current_active_user)],
             data: dict, requested_model_type: str = 'logreg', db: Session = Depends(get_db)):
     input_text = data
-    await data_queue.put(input_text)
 
     global model, model_type
     if requested_model_type != model_type:
         model_type = requested_model_type
-        model = await load_model(model_type)
+        model = load_model(model_type)
 
     model_price = config['models_pricing'][model_type]
     user_credits = db_flows.get_user_credits(db=db, username=current_user.username)
